@@ -1,53 +1,53 @@
 # document_loader.py
 # leitura TXT/PDF
 
-from pathlib import Path
-import fitz
+import os
+from pypdf import PdfReader
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-DOCUMENTS_PATH = BASE_DIR / "documentos"
-
-
-def load_txt(file_path):
-
-    with open(file_path, "r", encoding="utf-8") as file:
-        return file.read()
-
-
-def load_pdf(file_path):
-
-    document = fitz.open(file_path)
-
-    text = ""
-
-    for page in document:
-        text += page.get_text()
-
-    document.close()
-
-    return text
+DOCUMENTS_PATH = "data/documents"
 
 
 def load_all_documents():
 
     documents = []
 
-    for file_path in DOCUMENTS_PATH.iterdir():
+    for filename in os.listdir(DOCUMENTS_PATH):
 
-        if file_path.suffix == ".txt":
-            text = load_txt(file_path)
+        filepath = os.path.join(
+            DOCUMENTS_PATH,
+            filename
+        )
 
-        elif file_path.suffix == ".pdf":
-            text = load_pdf(file_path)
+        text = ""
 
-        else:
-            continue
+        # TXT
+        if filename.endswith(".txt"):
 
-        documents.append({
-            "filename": file_path.name,
-            "text": text
-        })
+            with open(
+                filepath,
+                "r",
+                encoding="utf-8"
+            ) as file:
+
+                text = file.read()
+
+        # PDF
+        elif filename.endswith(".pdf"):
+
+            reader = PdfReader(filepath)
+
+            for page in reader.pages:
+                extracted = page.extract_text()
+
+                if extracted:
+                    text += extracted + "\n"
+
+        if text.strip():
+
+            documents.append({
+                "text": text,
+                "source": filename
+            })
 
     return documents

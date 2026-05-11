@@ -1,30 +1,34 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Assistente RAG</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Assistente IA</title>
 </head>
 <body>
 
-    <h1>Assistente de Documentos</h1>
+<h1>Assistente IA Privado</h1>
 
-    <div class="chat-container">
+<h2>Upload Documento</h2>
 
-        <textarea id="question"></textarea>
+<input
+    type="file"
+    id="fileInput"
+/>
 
-        <button onclick="sendQuestion()">
-            Perguntar
-        </button>
+<button onclick="uploadFile()">
+    Upload
+</button>
 
-        <div id="response"></div>
+<hr>
 
-        <div id="sources"></div>
+<textarea id="question"></textarea>
 
-    </div>
+<button onclick="sendQuestion()">
+    Perguntar
+</button>
 
-    <script src="/static/js/app.js"></script>
+<div id="response"></div>
+
+<script src="/static/js/app.js"></script>
 
 </body>
 </html>

@@ -1,35 +1,43 @@
 # vector_store.py
 
-import json
-import numpy as np
-from pathlib import Path
+import chromadb
 
+client = chromadb.PersistentClient(
+    path="data/chroma_db"
+)
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-DATA_PATH = BASE_DIR / "dados"
-
-CHUNKS_FILE = DATA_PATH / "chunks.json"
-VECTORS_FILE = DATA_PATH / "vectors.npy"
+collection = client.get_or_create_collection(
+    name="documents"
+)
 
 
 def save_chunks(chunks):
 
-    with open(CHUNKS_FILE, "w", encoding="utf-8") as file:
-        json.dump(chunks, file, ensure_ascii=False, indent=2)
+    for chunk in chunks:
+        collection.add(
+            ids=[str(uuid.uuid4())],
+            documents=[chunk["text"]],
+            embeddings=[chunk["embedding"]],
+            metadatas=[{"source": chunk["source"]}]
+        )
 
 
-def load_chunks():
+def search_chunks(query_embedding, top_k=3):
 
-    with open(CHUNKS_FILE, "r", encoding="utf-8") as file:
-        return json.load(file)
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k
+    )
 
+    formatted = []
 
-def save_vectors(vectors):
+    for i in range(
+        len(results["documents"][0])
+    ):
 
-    np.save(VECTORS_FILE, np.array(vectors))
+        formatted.append({
+            "text": results["documents"][0][i],
+            "source": results["metadatas"][0][i]["source"]
+        })
 
-
-def load_vectors():
-
-    return np.load(VECTORS_FILE)
+    return formatted
