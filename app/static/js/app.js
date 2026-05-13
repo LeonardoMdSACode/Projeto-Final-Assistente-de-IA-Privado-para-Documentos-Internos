@@ -17,6 +17,8 @@ async function uploadFile() {
     const data = await response.json()
 
     alert(data.message)
+
+    loadDocuments()
 }
 
 async function sendQuestion() {
@@ -33,7 +35,10 @@ async function sendQuestion() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            question: question
+            question: question,
+            document: document.getElementById(
+                "documentSelect"
+            ).value
         })
     });
 
@@ -41,3 +46,28 @@ async function sendQuestion() {
 
     responseDiv.innerHTML = data.answer;
 }
+
+async function loadDocuments() {
+
+    const response = await fetch("/documents")
+
+    const data = await response.json()
+
+    const select =
+        document.getElementById("documentSelect")
+
+    select.innerHTML = ""
+
+    data.documents.forEach(doc => {
+
+        const option =
+            document.createElement("option")
+
+        option.value = doc
+        option.textContent = doc
+
+        select.appendChild(option)
+    })
+}
+
+loadDocuments()

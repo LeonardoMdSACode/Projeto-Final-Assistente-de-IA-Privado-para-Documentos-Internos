@@ -8,6 +8,8 @@ from pathlib import Path
 
 from indexar import run_indexing_pipeline
 
+from app.services.vector_store import collection
+
 router = APIRouter()
 
 os.makedirs("data/documents", exist_ok=True)
@@ -40,4 +42,22 @@ async def upload_document(file: UploadFile = File(...)):
 
     return {
         "message": "Documento carregado com sucesso"
+    }
+
+
+@router.get("/documents")
+def list_documents():
+
+    results = collection.get(
+        include=["metadatas"]
+    )
+
+    docs = set()
+
+    for meta in results["metadatas"]:
+
+        docs.add(meta["document"])
+
+    return {
+        "documents": list(docs)
     }

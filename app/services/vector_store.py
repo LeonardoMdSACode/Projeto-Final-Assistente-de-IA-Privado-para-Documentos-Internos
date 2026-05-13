@@ -1,6 +1,7 @@
 # vector_store.py
 
 import chromadb
+import uuid
 
 client = chromadb.PersistentClient(
     path="data/chroma_db"
@@ -18,16 +19,33 @@ def save_chunks(chunks):
             ids=[str(uuid.uuid4())],
             documents=[chunk["text"]],
             embeddings=[chunk["embedding"]],
-            metadatas=[{"source": chunk["source"]}]
+            metadatas=[{
+                "source": chunk["source"],
+                "document": chunk["source"]
+            }]
         )
 
 
-def search_chunks(query_embedding, top_k=3):
+def search_chunks(
+    query_embedding,
+    top_k=8,
+    document=None
+):
 
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
+    if document:
+
+        results = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k,
+            where={"document": document}
+        )
+
+    else:
+
+        results = collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k
+        )
 
     formatted = []
 
@@ -38,6 +56,25 @@ def search_chunks(query_embedding, top_k=3):
         formatted.append({
             "text": results["documents"][0][i],
             "source": results["metadatas"][0][i]["source"]
+        })
+
+    return formatted
+
+
+def get_all_chunks(limit=20):
+
+    results = collection.get(
+        limit=limit,
+        include=["documents", "metadatas"]
+    )
+
+    formatted = []
+
+    for i in range(len(results["documents"])):
+
+        formatted.append({
+            "text": results["documents"][i],
+            "source": results["metadatas"][i]["source"]
         })
 
     return formatted
