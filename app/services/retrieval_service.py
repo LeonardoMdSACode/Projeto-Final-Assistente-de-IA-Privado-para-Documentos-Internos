@@ -1,33 +1,20 @@
-# retrieval_service.py
-
-import numpy as np
-
 from app.services.embedding_service import generate_embedding
 from app.services.vector_store import search_chunks
+from app.services.reranker_service import rerank
+from app.services.query_rewrite_service import rewrite_query
 
 
-def search(query, document=None):
+def search(query, history=None):
 
-    query_embedding = generate_embedding(query)
+    rewritten_query = rewrite_query(query)
 
-    print("\nPERGUNTA:")
-    print(query)
+    print("ORIGINAL:", query)
+    print("REWRITTEN:", rewritten_query)
 
-    print("\nTAMANHO EMBEDDING:")
-    print(len(query_embedding))
+    query_embedding = generate_embedding(rewritten_query)
 
-    results = search_chunks(
-        query_embedding,
-        document=document
-    )
+    results = search_chunks(query_embedding, top_k=10)
 
-    print("\nRESULTADOS RETRIEVAL:")
+    results = rerank(rewritten_query, results)
 
-    for i, result in enumerate(results):
-
-        print(f"\n--- RESULTADO {i+1} ---")
-        print("SOURCE:", result["source"])
-        print("TEXT:")
-        print(result["text"][:1000])
-
-    return results
+    return results[:5]

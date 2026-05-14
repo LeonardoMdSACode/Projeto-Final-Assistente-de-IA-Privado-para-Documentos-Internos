@@ -21,31 +21,17 @@ def save_chunks(chunks):
             embeddings=[chunk["embedding"]],
             metadatas=[{
                 "source": chunk["source"],
-                "document": chunk["source"]
+                "doc_id": chunk["source"].split(".")[0]
             }]
         )
 
 
-def search_chunks(
-    query_embedding,
-    top_k=8,
-    document=None
-):
+def search_chunks(query_embedding, top_k=10):
 
-    if document:
-
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            where={"document": document}
-        )
-
-    else:
-
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k
-        )
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k
+    )
 
     formatted = []
 

@@ -2,38 +2,51 @@
 <html>
 <head>
     <title>Assistente IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
-<h1>Assistente IA Privado</h1>
+<div class="app">
 
-<h2>Upload Documento</h2>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
 
-<input
-    type="file"
-    id="fileInput"
-/>
+        <h2>Documentos</h2>
 
-<button onclick="uploadFile()">
-    Upload
-</button>
+        <input type="file" id="fileInput" />
+        <button onclick="uploadFile()">Upload</button>
 
-<hr>
+        <hr>
 
-<h2>Selecionar Documento</h2>
+        <button onclick="clearChat()">Novo Chat</button>
 
-<select id="documentSelect">
-</select>
+        <div class="small">
+            RAG Local (offline)
+        </div>
 
-<br><br>
+    </div>
 
-<textarea id="question"></textarea>
+    <!-- CHAT AREA -->
+    <div class="chat">
 
-<button onclick="sendQuestion()">
-    Perguntar
-</button>
+        <div id="chatBox" class="chat-box"></div>
 
-<div id="response"></div>
+        <div class="input-bar">
+
+            <textarea
+                id="question"
+                placeholder="Escreve a tua pergunta..."
+                onkeydown="handleKey(event)"
+            ></textarea>
+
+            <button onclick="sendQuestion()">Enviar</button>
+
+        </div>
+
+    </div>
+
+</div>
 
 <script src="/static/js/app.js"></script>
 

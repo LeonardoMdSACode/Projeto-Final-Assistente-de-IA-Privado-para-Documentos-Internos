@@ -6,7 +6,7 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/embeddings"
 
-EMBED_MODEL = "nomic-embed-text"
+EMBED_MODEL = "bge-m3"
 
 
 def generate_embedding(text):

@@ -1,6 +1,6 @@
 # chunking_service.py
 
-def create_chunks(text, chunk_size=500, overlap=100):
+def create_chunks(text, chunk_size=800, overlap=200):
 
     chunks = []
 

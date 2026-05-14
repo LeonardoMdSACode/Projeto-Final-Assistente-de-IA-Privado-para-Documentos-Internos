@@ -43,21 +43,3 @@ async def upload_document(file: UploadFile = File(...)):
     return {
         "message": "Documento carregado com sucesso"
     }
-
-
-@router.get("/documents")
-def list_documents():
-
-    results = collection.get(
-        include=["metadatas"]
-    )
-
-    docs = set()
-
-    for meta in results["metadatas"]:
-
-        docs.add(meta["document"])
-
-    return {
-        "documents": list(docs)
-    }

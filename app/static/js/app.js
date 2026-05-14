@@ -17,57 +17,53 @@ async function uploadFile() {
     const data = await response.json()
 
     alert(data.message)
+}
 
-    loadDocuments()
+function addMessage(role, text) {
+    const chatBox = document.getElementById("chatBox");
+
+    const div = document.createElement("div");
+    div.className = "msg " + role;
+    div.textContent = text;
+
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 async function sendQuestion() {
 
-    const question = document.getElementById("question").value;
+    const input = document.getElementById("question");
+    const question = input.value.trim();
 
-    const responseDiv = document.getElementById("response");
+    if (!question) return;
 
-    responseDiv.innerHTML = "A processar...";
+    addMessage("user", question);
+
+    input.value = "";
 
     const response = await fetch("/chat", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            question: question,
-            document: document.getElementById(
-                "documentSelect"
-            ).value
-        })
+        body: JSON.stringify({ question })
     });
 
     const data = await response.json();
 
-    responseDiv.innerHTML = data.answer;
+    addMessage("assistant", data.answer);
 }
 
-async function loadDocuments() {
-
-    const response = await fetch("/documents")
-
-    const data = await response.json()
-
-    const select =
-        document.getElementById("documentSelect")
-
-    select.innerHTML = ""
-
-    data.documents.forEach(doc => {
-
-        const option =
-            document.createElement("option")
-
-        option.value = doc
-        option.textContent = doc
-
-        select.appendChild(option)
-    })
+function handleKey(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendQuestion();
+    }
 }
 
-loadDocuments()
+async function clearChat() {
+
+    await fetch("/clear", { method: "POST" });
+
+    document.getElementById("chatBox").innerHTML = "";
+}

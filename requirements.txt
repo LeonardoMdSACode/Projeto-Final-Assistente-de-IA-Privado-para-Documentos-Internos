@@ -14,3 +14,4 @@ scikit-learn
 python-dotenv
 
 chromadb
+sentence-transformers

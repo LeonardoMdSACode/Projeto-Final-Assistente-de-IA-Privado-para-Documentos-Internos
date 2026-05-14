@@ -14,4 +14,11 @@ ChromaDB:
 - collections
 - escalabilidade
 - arquitetura semelhante a sistemas enterprise
-  
+
+
+Perguntas teste:
+Qual documento fala sobre Django?
+Que livro fala sobre sociologia?
+Explica classes em Python.
+Qual documento menciona bootstrap_css?
+Que documento fala sobre journals e learning logs?

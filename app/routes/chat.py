@@ -1,81 +1,167 @@
-# chat.py
-# endpoint /chat
+# app/routes/chat.py
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.services.retrieval_service import search
 from app.services.llm_service import ask_llm
-from app.services.vector_store import get_all_chunks
+from app.services.memory_service import (
+    add_message,
+    get_history,
+    clear_history
+)
+from app.services.query_rewrite_service import rewrite_query
+from app.services.vector_store import collection
 
 router = APIRouter()
 
 
 class ChatRequest(BaseModel):
     question: str
-    document: str | None = None
+
+
+# -------------------------
+# routing helpers
+# -------------------------
+
+def is_doc_list_query(q: str) -> bool:
+    q = q.lower()
+    return any(k in q for k in [
+        "que documentos",
+        "quais documentos",
+        "lista de documentos",
+        "o que tens na base de dados",
+        "que ficheiros",
+        "quais ficheiros"
+    ])
+
+
+def is_conversation_query(q: str) -> bool:
+    q = q.lower()
+    return any(k in q for k in [
+        "falámos",
+        "discutimos",
+        "tema anterior",
+        "isso",
+        "explica melhor",
+        "resume isso",
+        "o que disseste"
+    ])
 
 
 @router.post("/chat")
 def chat(request: ChatRequest):
 
-    question = request.question.lower()
+    question = request.question
 
-    if "resume" in question or "sobre o que" in question:
+    add_message("user", question)
 
-        results = get_all_chunks(limit=20)
+    history = get_history()
+
+    formatted_history = "\n".join([
+        f"{m['role']}: {m['content']}"
+        for m in history[-6:]
+    ])
+
+    results = []
+    answer = ""
+
+    # ======================================================
+    # MODE 1 — DOCUMENT LISTING (SEM RAG, SEM REWRITE)
+    # ======================================================
+
+    if is_doc_list_query(question):
+
+        docs = collection.get(include=["metadatas"])
+
+        unique_docs = sorted(set(
+            m["source"] for m in docs["metadatas"]
+        ))
+
+        answer = "Documentos na base de dados:\n\n" + "\n".join(unique_docs)
+
+        results = [{
+            "source": "vector_db",
+            "text": "\n".join(unique_docs)
+        }]
+
+    # ======================================================
+    # MODE 2 — CONVERSA (SEM RAG)
+    # ======================================================
+
+    elif is_conversation_query(question):
+
+        prompt = f"""
+És um assistente com memória.
+
+Usa apenas histórico da conversa.
+
+Histórico:
+{formatted_history}
+
+Pergunta:
+{question}
+"""
+
+        answer = ask_llm(prompt)
+
+    # ======================================================
+    # MODE 3 — RAG NORMAL
+    # ======================================================
 
     else:
 
-        question = request.question.lower()
+        rewritten = rewrite_query(question)
 
-        if "resume" in question or "sobre o que" in question:
-        
-            results = get_all_chunks(limit=20)
+        results = search(rewritten, history=history)
 
-        else:
-        
-            results = search(
-                request.question,
-                document=request.document
-            )
+        context = "\n\n---\n\n".join([
+            f"[{r['source']}]\n{r['text']}"
+            for r in results
+        ]) if results else "SEM CONTEXTO DOCUMENTAL"
 
-    context = "\n\n".join(
-        [item["text"] for item in results]
-    )
-
-    prompt = f"""
+        prompt = f"""
 És um assistente RAG.
 
-Responde APENAS usando o contexto fornecido.
+REGRAS:
+- usa apenas contexto fornecido
+- nunca inventes
+- se não houver informação diz:
+  "Não encontrei essa informação nos documentos."
 
-Se a pergunta pedir um resumo do documento,
-tenta identificar:
-- tema principal
-- tecnologias
-- objetivos
-- tópicos recorrentes
+Histórico:
+{formatted_history}
 
-Não inventes informação.
-
-CONTEXTO:
+Contexto:
 {context}
 
-PERGUNTA:
-{request.question}
-
-RESPOSTA:
+Pergunta:
+{question}
 """
 
-    print("\nCONTEXTO FINAL:")
-    print(context[:3000])
+        answer = ask_llm(prompt)
 
-    print("\nPROMPT FINAL:")
-    print(prompt[:4000])
-    
-    answer = ask_llm(prompt)
+    # -------------------------
+    # memory update
+    # -------------------------
+
+    add_message("assistant", answer)
+
+    # -------------------------
+    # sources limpos (UI-safe)
+    # -------------------------
+
+    sources = sorted(set([
+        r["source"] for r in results
+    ])) if results else []
 
     return {
         "answer": answer,
-        "sources": results
+        "sources": sources
     }
+
+
+@router.post("/clear")
+def clear_chat():
+    clear_history()
+    return {"message": "Histórico limpo."}
