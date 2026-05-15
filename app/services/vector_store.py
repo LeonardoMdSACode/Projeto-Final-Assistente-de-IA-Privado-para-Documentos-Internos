@@ -23,8 +23,8 @@ def save_chunks(chunks):
 
         embedding = chunk.get("embedding")
 
-        if embedding is None:
-            raise ValueError("Embedding em falta no chunk")
+        if not isinstance(embedding, list):
+            raise ValueError("Embedding inválido")
 
         collection.add(
             ids=[str(uuid.uuid4())],
@@ -34,7 +34,8 @@ def save_chunks(chunks):
                 "source": chunk.get("source", "UNKNOWN_SOURCE"),
                 "doc_id": chunk.get("source", "UNKNOWN_DOC").split(".")[0],
                 "chunk_id": chunk.get("chunk_id", -1),
-                "snippet": chunk.get("snippet", text[:200])
+                "snippet": chunk.get("snippet", text[:200]),
+                "length": len(text)
             }]
         )
 

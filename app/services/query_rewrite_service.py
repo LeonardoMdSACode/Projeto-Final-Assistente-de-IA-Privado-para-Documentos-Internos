@@ -1,26 +1,26 @@
 # app/services/query_rewrite_service.py
 
 from app.services.llm_service import ask_llm
-from app.services.memory_service import get_history
 
 
-def rewrite_query(question: str) -> str:
+def rewrite_query(question: str, history=None) -> str:
 
-    history = get_history()
+    history = history or []
 
     formatted_history = "\n".join(
-        f"{m['role']}: {m['content']}"
+        f"{m.get('role','user')}: {m.get('content','')}"
         for m in history[-6:]
     )
 
     prompt = f"""
-Tu és um sistema de reescrita de queries para um sistema RAG.
+Reescreve a pergunta do utilizador para uma query autónoma para RAG.
 
-Tarefa:
-- Reescreve a pergunta do utilizador para uma query autónoma
-- Expande referências vagas (ex: "isso", "esse tópico")
-- Mantém apenas intenção de pesquisa
-- Não respondas à pergunta
+Regras:
+- mantém intenção original
+- resolve referências ("isso", "aquilo")
+- não responder
+- não inventar informação
+- se histórico for irrelevante ignora
 
 Histórico:
 {formatted_history}
@@ -28,9 +28,9 @@ Histórico:
 Pergunta:
 {question}
 
-Responde apenas com a query reescrita:
+Query:
 """
 
-    rewritten = ask_llm(prompt).strip().split("\n")[0]
+    result = ask_llm(prompt)
 
-    return rewritten.strip()
+    return result.strip().split("\n")[0]

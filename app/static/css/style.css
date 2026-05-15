@@ -171,3 +171,12 @@ button:disabled {
     color: #aaa;
     margin-top: 5px;
 }
+
+.msg {
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.assistant {
+    white-space: pre-wrap;
+}

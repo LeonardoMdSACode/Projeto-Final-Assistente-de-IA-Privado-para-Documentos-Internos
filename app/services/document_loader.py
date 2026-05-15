@@ -41,7 +41,9 @@ def load_all_documents():
                 extracted = page.extract_text()
 
                 if extracted:
-                    text += extracted + "\n"
+                    cleaned = extracted.replace("\x00", " ")
+
+                    text += cleaned + "\n"
 
         if text.strip():
 

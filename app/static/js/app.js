@@ -82,20 +82,29 @@ async function sendQuestion() {
 
         // fontes
         if (data.sources?.length) {
-                
+
             finalAnswer += "\n\nFontes:\n"
-                
+
             data.sources.forEach(s => {
                 finalAnswer += `- ${s.source}\n`
             })
         }
 
-        // chunks (NOVO)
+        // excertos usados
         if (data.chunks?.length) {
-            finalAnswer += "\n\nChunks usados:\n" +
-                data.chunks.map(c =>
-                    `- ${c.source}: ${c.text.slice(0, 120)}...`
-                ).join("\n")
+        
+            finalAnswer += "\n\nExcertos relevantes:\n\n"
+        
+            data.chunks.forEach(c => {
+            
+                finalAnswer +=
+        `━━━━━━━━━━━━━━━━━━
+        SOURCE: ${c.source}
+        CHUNK: ${c.chunk_id}
+            
+        "${c.snippet}"
+        \n`
+            })
         }
 
         addMessage("assistant", finalAnswer)

@@ -6,10 +6,13 @@ from app.services.embedding_service import generate_embedding
 from app.services.vector_store import save_chunks
 
 
+def safe_truncate(text: str, max_chars=1800):
+    return text if len(text) <= max_chars else text[:max_chars]
+
+
 def run_indexing_pipeline():
 
     documents = load_all_documents()
-
     all_chunks = []
 
     for document in documents:
@@ -20,21 +23,31 @@ def run_indexing_pipeline():
 
             text = chunk["text"]
 
-            embedding = generate_embedding(text)
+            if len(text.strip()) < 30:
+                continue
+
+            text = safe_truncate(text)
+
+            try:
+                embedding = generate_embedding(text)
+            except Exception as e:
+                print(f"[EMBED ERROR] chunk={chunk['chunk_id']} err={e}")
+                continue
 
             all_chunks.append({
-                "text": chunk["text"],
+                "text": text,
                 "embedding": embedding,
                 "source": document["source"],
-                "chunk_id": chunk.get("chunk_id", -1),
-                "snippet": chunk["text"][:300]
+                "chunk_id": chunk["chunk_id"],
+                "snippet": chunk["snippet"]
             })
 
-    print("CHUNKS:", len(all_chunks))
-
-    if all_chunks:
-        print("EXEMPLO:", all_chunks[0])
+    print("TOTAL CHUNKS:", len(all_chunks))
 
     save_chunks(all_chunks)
 
-    print("Indexação concluída")
+    print("INDEXING DONE")
+
+
+if __name__ == "__main__":
+    run_indexing_pipeline()

@@ -24,7 +24,12 @@ def rerank(query, chunks, top_k=3):
         reverse=True
     )
 
-    return [
-        item[0]
-        for item in ranked[:top_k]
-    ]
+    final = []
+
+    for chunk, score in ranked[:top_k]:
+
+        chunk["score"] = float(score)
+
+        final.append(chunk)
+
+    return final

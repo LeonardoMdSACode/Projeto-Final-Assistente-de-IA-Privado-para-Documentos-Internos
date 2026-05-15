@@ -89,41 +89,47 @@ Pergunta:
         rewritten = rewrite_query(question)
         results = search(rewritten, history=history)
 
-        context = "\n\n".join([
+        context = "\n\n====================\n\n".join([
             f"""
-        [CHUNK_ID: {i}]
-        SOURCE: {r['source']}
+            SOURCE: {r['source']}
+            CHUNK_ID: {r.get('chunk_id', -1)}
+            RELEVANCE: {round(r.get('score', 0), 3)}
 
-        CONTENT:
-        {r['text']}
-        """
+            CONTENT:
+            {r['text']}
+            """
             for i, r in enumerate(results)
         ])
 
         prompt = f"""
-És um assistente RAG.
+És um sistema RAG.
 
-REGRAS OBRIGATÓRIAS:
-- PROIBIDO usar conhecimento externo
-- responde apenas com informação literalmente presente nos chunks
-- não faças inferências
-- não completes informação em falta
-- se a resposta não existir explicitamente:
-  "Não encontrei essa informação nos documentos"
-- cada afirmação tem de vir de um chunk
-- se não existir suporte no contexto, diz: "Não encontrei essa informação nos documentos"
-- indica sempre o SOURCE do chunk usado
+REGRAS CRÍTICAS:
 
-Formato obrigatório:
+1. Usa APENAS informação do contexto.
+2. NÃO uses conhecimento externo.
+3. Se contexto insuficiente:
+   "Não encontrei essa informação nos documentos."
+4. Cada afirmação deve incluir:
+   - SOURCE
+   - CHUNK_ID
+5. Resume informação.
+6. NÃO inventes detalhes.
 
-[resposta]
-SOURCE: nome_do_documento
-CHUNK: id
+FORMATO:
 
----
+Resposta aqui.
+
+FONTES USADAS:
+- SOURCE | CHUNK_ID
+
+-----------------------------------
 
 CONTEXTO:
+
 {context}
+
+-----------------------------------
 
 PERGUNTA:
 {question}

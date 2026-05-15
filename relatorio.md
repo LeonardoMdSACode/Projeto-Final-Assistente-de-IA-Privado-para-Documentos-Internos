@@ -22,3 +22,4 @@ Que livro fala sobre sociologia?
 Explica classes em Python.
 Qual documento menciona bootstrap_css?
 Que documento fala sobre journals e learning logs?
+Qual foi o assunto da primeira conversa que tivemos?
