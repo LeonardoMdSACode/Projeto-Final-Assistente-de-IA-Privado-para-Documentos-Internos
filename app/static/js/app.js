@@ -1,69 +1,134 @@
 async function uploadFile() {
 
-    const fileInput =
-        document.getElementById("fileInput")
+    const fileInput = document.getElementById("fileInput")
+    const uploadStatus = document.getElementById("uploadStatus")
+    const spinner = document.getElementById("uploadSpinner")
 
     const file = fileInput.files[0]
 
-    const formData = new FormData()
+    if (!file) return
 
+    uploadStatus.innerText = "A carregar documento..."
+    spinner.classList.remove("hidden")
+
+    const formData = new FormData()
     formData.append("file", file)
 
-    const response = await fetch("/upload", {
-        method: "POST",
-        body: formData
-    })
+    try {
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        })
 
-    const data = await response.json()
+        const data = await response.json()
+        uploadStatus.innerText = data.message
 
-    alert(data.message)
-}
-
-function addMessage(role, text) {
-    const chatBox = document.getElementById("chatBox");
-
-    const div = document.createElement("div");
-    div.className = "msg " + role;
-    div.textContent = text;
-
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-async function sendQuestion() {
-
-    const input = document.getElementById("question");
-    const question = input.value.trim();
-
-    if (!question) return;
-
-    addMessage("user", question);
-
-    input.value = "";
-
-    const response = await fetch("/chat", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ question })
-    });
-
-    const data = await response.json();
-
-    addMessage("assistant", data.answer);
-}
-
-function handleKey(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendQuestion();
+    } catch (e) {
+        uploadStatus.innerText = "Erro no upload"
+    } finally {
+        spinner.classList.add("hidden")
     }
 }
 
+
+function addMessage(role, text) {
+
+    const chatBox =
+        document.getElementById("chatBox")
+
+    const div =
+        document.createElement("div")
+
+    div.className = "msg " + role
+
+    div.textContent = text
+
+    chatBox.appendChild(div)
+
+    chatBox.scrollTop =
+        chatBox.scrollHeight
+}
+
+
+async function sendQuestion() {
+
+    const input = document.getElementById("question")
+    const sendBtn = document.getElementById("sendBtn")
+    const thinkingText = document.getElementById("thinkingText")
+    const thinkingSpinner = document.getElementById("thinkingSpinner")
+
+    const question = input.value.trim()
+    if (!question) return
+
+    addMessage("user", question)
+
+    input.value = ""
+
+    sendBtn.disabled = true
+    thinkingText.classList.remove("hidden")
+    thinkingSpinner.classList.remove("hidden")
+
+    try {
+
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question })
+        })
+
+        const data = await response.json()
+
+        let finalAnswer = data.answer
+
+        // fontes
+        if (data.sources?.length) {
+                
+            finalAnswer += "\n\nFontes:\n"
+                
+            data.sources.forEach(s => {
+                finalAnswer += `- ${s.source}\n`
+            })
+        }
+
+        // chunks (NOVO)
+        if (data.chunks?.length) {
+            finalAnswer += "\n\nChunks usados:\n" +
+                data.chunks.map(c =>
+                    `- ${c.source}: ${c.text.slice(0, 120)}...`
+                ).join("\n")
+        }
+
+        addMessage("assistant", finalAnswer)
+
+    } finally {
+        thinkingText.classList.add("hidden")
+        thinkingSpinner.classList.add("hidden")
+        sendBtn.disabled = false
+    }
+}
+
+
+function handleKey(event) {
+
+    if (
+        event.key === "Enter"
+        && !event.shiftKey
+    ) {
+
+        event.preventDefault()
+
+        sendQuestion()
+    }
+}
+
+
 async function clearChat() {
 
-    await fetch("/clear", { method: "POST" });
+    await fetch("/clear", {
+        method: "POST"
+    })
 
-    document.getElementById("chatBox").innerHTML = "";
+    document.getElementById(
+        "chatBox"
+    ).innerHTML = ""
 }

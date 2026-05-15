@@ -12,6 +12,10 @@ dados/
 models/
 data/
 
+screenshots/
+extras/
+
+
 .env
 
 .idea/

@@ -2,7 +2,11 @@
 <html>
 <head>
     <title>Assistente IA</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
 </head>
 
 <body>
@@ -17,9 +21,14 @@
         <input type="file" id="fileInput" />
         <button onclick="uploadFile()">Upload</button>
 
+        <div id="uploadStatus" class="status"></div>
+        <div id="uploadSpinner" class="spinner hidden"></div>
+
         <hr>
 
-        <button onclick="clearChat()">Novo Chat</button>
+        <button onclick="clearChat()">
+            Novo Chat
+        </button>
 
         <div class="small">
             RAG Local (offline)
@@ -27,21 +36,32 @@
 
     </div>
 
-    <!-- CHAT AREA -->
+    <!-- CHAT -->
     <div class="chat">
 
-        <div id="chatBox" class="chat-box"></div>
+        <div
+            id="chatBox"
+            class="chat-box"
+        ></div>
 
+        <!-- typing indicator -->
+        <div id="thinkingText" class="thinking hidden">
+            Assistente a pensar...
+        </div>
+        
+        <!-- INPUT -->
         <div class="input-bar">
-
+        
             <textarea
                 id="question"
                 placeholder="Escreve a tua pergunta..."
                 onkeydown="handleKey(event)"
             ></textarea>
-
-            <button onclick="sendQuestion()">Enviar</button>
-
+        
+            <button id="sendBtn" onclick="sendQuestion()">Enviar</button>
+        
+            <div id="thinkingSpinner" class="spinner hidden"></div>
+        
         </div>
 
     </div>

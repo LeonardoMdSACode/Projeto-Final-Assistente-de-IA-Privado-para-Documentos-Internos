@@ -15,13 +15,26 @@ collection = client.get_or_create_collection(
 def save_chunks(chunks):
 
     for chunk in chunks:
+
+        text = chunk.get("text", "")
+
+        if not isinstance(text, str):
+            raise ValueError(f"Chunk text inválido: {type(text)}")
+
+        embedding = chunk.get("embedding")
+
+        if embedding is None:
+            raise ValueError("Embedding em falta no chunk")
+
         collection.add(
             ids=[str(uuid.uuid4())],
-            documents=[chunk["text"]],
-            embeddings=[chunk["embedding"]],
+            documents=[text],
+            embeddings=[embedding],
             metadatas=[{
-                "source": chunk["source"],
-                "doc_id": chunk["source"].split(".")[0]
+                "source": chunk.get("source", "UNKNOWN_SOURCE"),
+                "doc_id": chunk.get("source", "UNKNOWN_DOC").split(".")[0],
+                "chunk_id": chunk.get("chunk_id", -1),
+                "snippet": chunk.get("snippet", text[:200])
             }]
         )
 
@@ -33,34 +46,20 @@ def search_chunks(query_embedding, top_k=10):
         n_results=top_k
     )
 
-    formatted = []
-
-    for i in range(
-        len(results["documents"][0])
-    ):
-
-        formatted.append({
-            "text": results["documents"][0][i],
-            "source": results["metadatas"][0][i]["source"]
-        })
-
-    return formatted
-
-
-def get_all_chunks(limit=20):
-
-    results = collection.get(
-        limit=limit,
-        include=["documents", "metadatas"]
-    )
+    docs = results.get("documents", [[]])[0]
+    metas = results.get("metadatas", [[]])[0]
 
     formatted = []
 
-    for i in range(len(results["documents"])):
+    for i in range(len(docs)):
+
+        meta = metas[i] if i < len(metas) else {}
 
         formatted.append({
-            "text": results["documents"][i],
-            "source": results["metadatas"][i]["source"]
+            "text": docs[i],
+            "source": meta.get("source") or "UNKNOWN_SOURCE",
+            "snippet": meta.get("snippet") or docs[i][:200],
+            "chunk_id": meta.get("chunk_id", -1)
         })
 
     return formatted

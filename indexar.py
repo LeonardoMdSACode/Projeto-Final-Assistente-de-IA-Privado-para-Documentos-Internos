@@ -1,5 +1,4 @@
 # indexar.py
-# indexação manual
 
 from app.services.document_loader import load_all_documents
 from app.services.chunking_service import create_chunks
@@ -19,21 +18,23 @@ def run_indexing_pipeline():
 
         for chunk in chunks:
 
-            embedding = generate_embedding(chunk)
+            text = chunk["text"]
+
+            embedding = generate_embedding(text)
 
             all_chunks.append({
-                "text": chunk,
+                "text": chunk["text"],
                 "embedding": embedding,
-                "source": document["source"]
+                "source": document["source"],
+                "chunk_id": chunk.get("chunk_id", -1),
+                "snippet": chunk["text"][:300]
             })
 
     print("CHUNKS:", len(all_chunks))
-    print("EXEMPLO:", all_chunks[0])
+
+    if all_chunks:
+        print("EXEMPLO:", all_chunks[0])
 
     save_chunks(all_chunks)
 
     print("Indexação concluída")
-
-
-if __name__ == "__main__":
-    run_indexing_pipeline()

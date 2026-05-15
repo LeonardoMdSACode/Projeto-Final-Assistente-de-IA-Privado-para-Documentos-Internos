@@ -11,6 +11,7 @@ body {
 }
 
 /* SIDEBAR */
+
 .sidebar {
     width: 260px;
     background: #171717;
@@ -18,38 +19,63 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    border-right: 1px solid #2a2a2a;
 }
 
 .sidebar button {
-    padding: 8px;
-    background: #333;
+    padding: 10px;
+    background: #2b7cff;
     border: none;
+    border-radius: 8px;
     color: white;
     cursor: pointer;
 }
 
+.sidebar button:hover {
+    opacity: 0.9;
+}
+
+.small {
+    margin-top: auto;
+    font-size: 12px;
+    color: #888;
+}
+
+.status {
+    font-size: 13px;
+    color: #aaa;
+    min-height: 20px;
+}
+
 /* CHAT */
+
 .chat {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background: #121212;
 }
+
+/* CHAT BOX */
 
 .chat-box {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 25px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
 }
 
-/* MENSAGENS */
+/* MESSAGES */
+
 .msg {
-    max-width: 70%;
-    padding: 10px 14px;
-    border-radius: 12px;
+    max-width: 75%;
+    padding: 14px 16px;
+    border-radius: 14px;
+    line-height: 1.5;
     white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .user {
@@ -59,32 +85,89 @@ body {
 
 .assistant {
     align-self: flex-start;
-    background: #2a2a2a;
+    background: #222;
+    border: 1px solid #333;
+}
+
+/* THINKING */
+
+.thinking {
+    padding-left: 25px;
+    padding-bottom: 10px;
+    color: #999;
+    font-size: 14px;
+}
+
+.hidden {
+    display: none;
 }
 
 /* INPUT BAR */
+
 .input-bar {
     display: flex;
-    padding: 10px;
-    background: #1a1a1a;
     gap: 10px;
+    padding: 16px;
+    background: #1a1a1a;
+    border-top: 1px solid #2a2a2a;
 }
 
 textarea {
     flex: 1;
     resize: none;
-    height: 50px;
-    padding: 10px;
-    border-radius: 8px;
+    height: 60px;
+    padding: 14px;
+    border-radius: 10px;
     border: none;
     background: #2a2a2a;
     color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+textarea:focus {
+    border: 1px solid #2b7cff;
 }
 
 button {
-    padding: 10px 14px;
+    padding: 12px 16px;
     background: #2b7cff;
     border: none;
+    border-radius: 10px;
     color: white;
     cursor: pointer;
+    font-size: 14px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* loading spinner */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #444;
+    border-top: 2px solid #2b7cff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
+
+/* status text */
+.status {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 5px;
 }
