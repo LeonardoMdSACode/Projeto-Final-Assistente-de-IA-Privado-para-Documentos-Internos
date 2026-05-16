@@ -5,8 +5,7 @@ from pydantic import BaseModel
 
 from app.services.retrieval_service import search
 from app.services.llm_service import ask_llm
-from app.services.memory_service import add_message, get_history, clear_history
-from app.services.query_rewrite_service import rewrite_query
+from app.services.memory_service import add_message, get_history
 from app.services.vector_store import collection
 
 router = APIRouter()
@@ -18,17 +17,16 @@ class ChatRequest(BaseModel):
 
 def is_greeting(q: str) -> bool:
     q = q.lower()
-    return any(k in q for k in ["olá", "ola", "hello", "hi", "bom dia", "boa tarde", "boa noite"])
+    return any(k in q for k in ["olá", "ola", "hello", "hi"])
 
 
 def is_doc_list_query(q: str) -> bool:
     q = q.lower()
-    return any(k in q for k in ["que documentos", "quais documentos", "lista de documentos", "que ficheiros"])
-
-
-def is_conversation_query(q: str) -> bool:
-    q = q.lower()
-    return any(k in q for k in ["falámos", "discutimos", "tema anterior", "isso", "explica melhor"])
+    return any(k in q for k in [
+        "que documentos",
+        "quais documentos",
+        "lista de documentos"
+    ])
 
 
 @router.post("/chat")
@@ -39,17 +37,11 @@ def chat(request: ChatRequest):
 
     history = get_history()
 
-    formatted_history = "\n".join(
-        f"{m['role']}: {m['content']}"
-        for m in history[-6:]
-    )
-
     results = []
     answer = ""
 
     # ---------------- GREETING ----------------
     if is_greeting(question):
-
         answer = "Olá. Como posso ajudar?"
         results = []
 
@@ -63,117 +55,69 @@ def chat(request: ChatRequest):
             for m in docs.get("metadatas", [])
         ))
 
-        answer = "Documentos na base de dados:\n\n" + "\n".join(unique_docs)
+        answer = "Documentos:\n\n" + "\n".join(unique_docs)
+        results = []
 
-        results = [
-            {"source": d, "text": d, "snippet": d}
-            for d in unique_docs
-        ]
-
-    # ---------------- CONVERSATION ----------------
-    elif is_conversation_query(question):
-
-        prompt = f"""
-Histórico:
-{formatted_history}
-
-Pergunta:
-{question}
-"""
-
-        answer = ask_llm(prompt)
-
-    # ---------------- RAG ----------------
+    # ---------------- RAG + MEMORY ----------------
     else:
 
-        rewritten = rewrite_query(question)
-        results = search(rewritten, history=history)
+        results = search(question)
 
-        context = "\n\n====================\n\n".join([
-            f"""
-            SOURCE: {r['source']}
-            CHUNK_ID: {r.get('chunk_id', -1)}
-            RELEVANCE: {round(r.get('score', 0), 3)}
+        print("RAG RESULTS COUNT:", len(results))
+        print("RAG SAMPLE:", results[:1])
 
-            CONTENT:
-            {r['text']}
-            """
-            for i, r in enumerate(results)
-        ])
+        context = "\n\n---\n\n".join(
+            f"SOURCE: {r['source']}\nCHUNK_ID: {r.get('chunk_id', -1)}\nTEXT:\n{r['text']}"
+            for r in results
+        )
+
+        formatted_history = "\n".join(
+            f"{m['role']}: {m['content']}"
+            for m in history[-6:]
+        )
 
         prompt = f"""
-És um sistema RAG.
+Tu és um assistente RAG.
 
-REGRAS CRÍTICAS:
+REGRAS:
+- usa histórico + documentos
+- nunca inventes
+- se não souberes diz explicitamente
 
-1. Usa APENAS informação do contexto.
-2. NÃO uses conhecimento externo.
-3. Se contexto insuficiente:
-   "Não encontrei essa informação nos documentos."
-4. Cada afirmação deve incluir:
-   - SOURCE
-   - CHUNK_ID
-5. Resume informação.
-6. NÃO inventes detalhes.
+HISTÓRICO:
+{formatted_history}
 
-FORMATO:
-
-Resposta aqui.
-
-FONTES USADAS:
-- SOURCE | CHUNK_ID
-
------------------------------------
-
-CONTEXTO:
-
+DOCUMENTOS:
 {context}
-
------------------------------------
 
 PERGUNTA:
 {question}
+
+RESPOSTA:
 """
 
         answer = ask_llm(prompt)
 
     add_message("assistant", answer)
 
-    # ---------------- SOURCES ----------------
-    sources = [
-        {
-            "source": r.get("source", "UNKNOWN_SOURCE"),
-            "snippet": r.get("snippet", "")
-        }
-        for r in results
-    ]
-
-    seen = set()
+    # 🔥 IMPORTANTE: agora devolve sources reais
     unique_sources = []
+    seen = set()
 
-    for s in sources:
-        if s["source"] not in seen:
-            seen.add(s["source"])
-            unique_sources.append(s)
+    for r in results:
+        src = r.get("source", "UNKNOWN_SOURCE")
 
-    chunks = [
-        {
-            "source": r.get("source", "UNKNOWN_SOURCE"),
-            "text": r.get("text", ""),
-            "snippet": r.get("snippet", r.get("text", "")[:200]),
-            "chunk_id": r.get("chunk_id", -1)
-        }
-        for r in results
-    ]
+        if src in seen:
+            continue
 
-    return {
-        "answer": answer,
-        "sources": unique_sources,
-        "chunks": chunks
-    }
+        seen.add(src)
+        unique_sources.append({
+            "source": src,
+            "snippet": r.get("snippet", "")
+        })
 
 
-@router.post("/clear")
+@router.post("/chat/clear")
 def clear_chat():
     clear_history()
     return {"message": "Histórico limpo."}

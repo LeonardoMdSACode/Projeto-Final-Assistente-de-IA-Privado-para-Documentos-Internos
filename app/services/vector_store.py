@@ -44,11 +44,13 @@ def search_chunks(query_embedding, top_k=10):
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=top_k
+        n_results=top_k,
+        include=["documents", "metadatas", "distances"]
     )
 
     docs = results.get("documents", [[]])[0]
     metas = results.get("metadatas", [[]])[0]
+    distances = results.get("distances", [[]])[0]
 
     formatted = []
 
@@ -60,7 +62,8 @@ def search_chunks(query_embedding, top_k=10):
             "text": docs[i],
             "source": meta.get("source") or "UNKNOWN_SOURCE",
             "snippet": meta.get("snippet") or docs[i][:200],
-            "chunk_id": meta.get("chunk_id", -1)
+            "chunk_id": meta.get("chunk_id", -1),
+            "distance": distances[i] if i < len(distances) else None
         })
 
     return formatted

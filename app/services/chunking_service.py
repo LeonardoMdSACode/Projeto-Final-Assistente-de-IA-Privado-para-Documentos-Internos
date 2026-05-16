@@ -8,48 +8,100 @@ nltk.data.path.append("./nltk_data")
 from nltk.tokenize import sent_tokenize
 
 
+MIN_WORDS = 80
+
+
 def clean_text(text: str):
+
+    text = text.replace("\x00", " ")
+
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]+", " ", text)
+
+    # remove páginas tipo índice
+    text = re.sub(r"\.{4,}\s*\d+", "", text)
+
     return text.strip()
 
 
-def is_noise_chunk(text: str) -> bool:
-    t = text.lower()
+def looks_like_index(text: str) -> bool:
 
-    # lixo estrutural de livro
+    lines = text.splitlines()
+
+    dotted = 0
+
+    for line in lines:
+
+        if re.search(r"\.{3,}\s*\d+$", line.strip()):
+            dotted += 1
+
+    return dotted >= 3
+
+
+def is_noise_chunk(text: str) -> bool:
+
+    t = text.lower().strip()
+
+    if not t:
+        return True
+
+    # chunks demasiado pequenos
+    if len(t.split()) < MIN_WORDS:
+        return True
+
+    # table of contents
     if "table of contents" in t:
         return True
 
-    if t.strip().startswith("chapter"):
+    # índices remissivos
+    if looks_like_index(t):
         return True
 
-    # páginas de índice (muito comum em PDFs)
-    if len(t.split()) < 50:
+    # headers típicos
+    forbidden = [
+        "see also",
+        "appendix",
+        "index",
+        "contents",
+        "copyright",
+        "all rights reserved",
+        "isbn",
+        "chapter contents"
+    ]
+
+    for f in forbidden:
+        if f in t:
+            return True
+
+    # excesso de números
+    digits_ratio = sum(c.isdigit() for c in t) / max(len(t), 1)
+
+    if digits_ratio > 0.20:
         return True
 
-    # texto demasiado “fragmentado”
-    if t.count("\n") > 20 and len(t.split()) < 80:
-        return True
-
-    # listas de páginas / headers
-    if sum(c.isdigit() for c in t) > len(t) * 0.3:
+    # chunk demasiado fragmentado
+    if t.count("\n") > 15 and len(t.split()) < 120:
         return True
 
     return False
 
 
-def create_chunks(text: str, chunk_size=900, overlap=120):
+def create_chunks(text: str, chunk_size=1600, overlap_sentences=4):
 
     text = clean_text(text)
+
     sentences = sent_tokenize(text)
 
     chunks = []
+
     current = []
+
     chunk_id = 0
 
     def flush():
-        nonlocal chunk_id, current
+
+        nonlocal current
+        nonlocal chunk_id
 
         if not current:
             return
@@ -63,20 +115,27 @@ def create_chunks(text: str, chunk_size=900, overlap=120):
         chunks.append({
             "chunk_id": chunk_id,
             "text": chunk_text,
-            "snippet": chunk_text[:300]
+            "snippet": chunk_text[:350]
         })
 
         chunk_id += 1
-        current = current[-3:]  # overlap semântico real (sentenças)
+
+        # overlap semântico
+        current = current[-overlap_sentences:]
 
     for sentence in sentences:
 
-        if len(sentence) > chunk_size:
-            sentence = sentence[:chunk_size]
+        sentence = sentence.strip()
 
-        current_text = " ".join(current + [sentence])
+        if not sentence:
+            continue
 
-        if len(current_text) > chunk_size:
+        if len(sentence) > 1200:
+            sentence = sentence[:1200]
+
+        candidate = " ".join(current + [sentence])
+
+        if len(candidate) > chunk_size:
             flush()
 
         current.append(sentence)

@@ -2,14 +2,36 @@
 
 from sentence_transformers import CrossEncoder
 
-# carrega 1x (import é lazy, mas isto fica em memória)
-model = CrossEncoder("BAAI/bge-reranker-base")
+model = None
+
+try:
+
+    model = CrossEncoder(
+        "BAAI/bge-reranker-base",
+        local_files_only=True
+    )
+
+    print("[RERANKER] loaded")
+
+except Exception as e:
+
+    print("[RERANKER DISABLED]", e)
+
+    model = None
 
 
-def rerank(query, chunks, top_k=3):
+def rerank(query, chunks, top_k=5):
 
     if not chunks:
         return []
+
+    # fallback simples
+    if model is None:
+
+        for c in chunks:
+            c["score"] = 0.0
+
+        return chunks[:top_k]
 
     pairs = [
         (query, chunk["text"])

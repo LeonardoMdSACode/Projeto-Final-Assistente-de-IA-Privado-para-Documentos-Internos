@@ -9,18 +9,19 @@ def rewrite_query(question: str, history=None) -> str:
 
     formatted_history = "\n".join(
         f"{m.get('role','user')}: {m.get('content','')}"
-        for m in history[-6:]
+        for m in history[-4:]
     )
 
     prompt = f"""
-Reescreve a pergunta do utilizador para uma query autónoma para RAG.
+Transforma a pergunta numa query de pesquisa para RAG.
 
 Regras:
-- mantém intenção original
-- resolve referências ("isso", "aquilo")
-- não responder
-- não inventar informação
-- se histórico for irrelevante ignora
+- manter significado original
+- resolver referências contextuais
+- expandir termos vagos
+- NÃO responder
+- NÃO inventar contexto
+- output curto
 
 Histórico:
 {formatted_history}
@@ -33,4 +34,9 @@ Query:
 
     result = ask_llm(prompt)
 
-    return result.strip().split("\n")[0]
+    result = result.strip().split("\n")[0]
+
+    if len(result) < 3:
+        return question
+
+    return result

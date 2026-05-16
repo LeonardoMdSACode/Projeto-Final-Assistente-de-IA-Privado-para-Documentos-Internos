@@ -3,35 +3,59 @@
 from app.services.embedding_service import generate_embedding
 from app.services.vector_store import search_chunks
 from app.services.reranker_service import rerank
-from app.services.query_rewrite_service import rewrite_query
+
+# filtro menos agressivo (evita matar recall)
+MIN_SCORE = -1.0
+
+
+def deduplicate_chunks(results):
+    seen = set()
+    final = []
+
+    for r in results:
+        key = r["text"][:300]
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        final.append(r)
+
+    return final
 
 
 def search(query, history=None):
 
-    rewritten_query = rewrite_query(query, history=history)
-
-    print("ORIGINAL:", query)
-    print("REWRITTEN:", rewritten_query)
-
-    query_embedding = generate_embedding(rewritten_query)
+    # NÃO usar history aqui ainda (evita ruído no embedding)
+    query_embedding = generate_embedding(query)
 
     results = search_chunks(
         query_embedding,
-        top_k=20
+        top_k=25
     )
+
+    if not results:
+        return []
+
+    results = deduplicate_chunks(results)
 
     ranked = rerank(
-        rewritten_query,
+        query,
         results,
-        top_k=5
+        top_k=8
     )
 
-    return ranked
+    # IMPORTANT: não matar resultados cedo demais
+    filtered = []
 
+    for r in ranked:
+        score = r.get("score", 0)
 
-def build_query(query, history):
-    if not history:
-        return query
+        if score >= MIN_SCORE:
+            filtered.append(r)
 
-    context = " ".join(history[-3:])
-    return f"{context} {query}"
+    # fallback safety: nunca devolver vazio se há candidatos
+    if not filtered and ranked:
+        return ranked[:3]
+
+    return filtered
