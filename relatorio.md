@@ -23,3 +23,8 @@ Explica classes em Python.
 Qual documento menciona bootstrap_css?
 Que documento fala sobre journals e learning logs?
 Qual foi o assunto da primeira conversa que tivemos?
+
+
+Maior dificuldade de projeto:
+Separar RAG de histórico.
+Indexar grandes documentos/livros sem que o chunks tenho lixo.

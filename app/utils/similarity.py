@@ -1,4 +1,4 @@
-# similarity.py
+# app\utils\similarity.py
 # cosine similarity
 
 from difflib import SequenceMatcher

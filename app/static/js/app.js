@@ -78,36 +78,8 @@ async function sendQuestion() {
 
         const data = await response.json()
 
-        let finalAnswer = data.answer
-
-        // fontes
-        if (data.sources?.length) {
-
-            finalAnswer += "\n\nFontes:\n"
-
-            data.sources.forEach(s => {
-                finalAnswer += `- ${s.source}\n`
-            })
-        }
-
-        // excertos usados
-        if (data.chunks?.length) {
-        
-            finalAnswer += "\n\nExcertos relevantes:\n\n"
-        
-            data.chunks.forEach(c => {
-            
-                finalAnswer +=
-        `━━━━━━━━━━━━━━━━━━
-        SOURCE: ${c.source}
-        CHUNK: ${c.chunk_id}
-            
-        "${c.snippet}"
-        \n`
-            })
-        }
-
-        addMessage("assistant", finalAnswer)
+        // 🔥 NUNCA TOQUES NO OUTPUT
+        addMessage("assistant", data.answer || "Erro na resposta")
 
     } finally {
         thinkingText.classList.add("hidden")

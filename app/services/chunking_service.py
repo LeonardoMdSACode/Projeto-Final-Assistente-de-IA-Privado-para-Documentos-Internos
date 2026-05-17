@@ -86,7 +86,7 @@ def is_noise_chunk(text: str) -> bool:
     return False
 
 
-def create_chunks(text: str, chunk_size=1600, overlap_sentences=4):
+def create_chunks(text: str, chunk_size=900, overlap_sentences=3):
 
     text = clean_text(text)
 
