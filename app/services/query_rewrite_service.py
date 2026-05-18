@@ -1,49 +1,34 @@
 # app/services/query_rewrite_service.py
 
-from app.services.llm_service import ask_llm
+import re
 
 
 def rewrite_query(question: str, history=None) -> str:
 
-    history = history or []
+    original = question.strip()
 
-    formatted_history = "\n".join(
-        f"{m.get('role', 'user')}: {m.get('content', '')}"
-        for m in history[-4:]
-    )
+    rewritten = original.lower()
 
-    prompt = f"""
-Transforma a pergunta numa query de pesquisa curta para RAG.
+    # remove padrões fracos de pergunta
+    patterns = [
+        "o que encontras sobre",
+        "o que me podes dizer sobre",
+        "fala sobre",
+        "explica",
+        "qual é",
+    ]
 
-REGRAS:
-- manter intenção original
-- resolver referências contextuais
-- NÃO responder
-- NÃO explicar
-- NÃO inventar
-- output curto
-- apenas uma linha
+    for p in patterns:
+        rewritten = rewritten.replace(p, "")
 
-Histórico:
-{formatted_history}
+    rewritten = re.sub(r"[^\w\sà-ÿ]", " ", rewritten)
+    rewritten = re.sub(r"\s+", " ", rewritten).strip()
 
-Pergunta:
-{question}
+    # 🔧 DEBUG OUTPUT
+    print("\n[QUERY ORIGINAL]")
+    print(original)
 
-Query:
-"""
+    print("\n[QUERY REWRITTEN]")
+    print(rewritten)
 
-    try:
-
-        result = ask_llm(prompt)
-
-        result = result.strip().split("\n")[0]
-
-        if len(result) < 3:
-            return question
-
-        return result
-
-    except Exception:
-
-        return question
+    return rewritten if len(rewritten) > 2 else original

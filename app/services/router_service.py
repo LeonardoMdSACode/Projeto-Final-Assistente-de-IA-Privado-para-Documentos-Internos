@@ -7,8 +7,20 @@ def decide(question: str, history=None):
 
     # MEMORY fallback trigger (só comportamento)
     memory_triggers = [
-        "isso", "esse", "explica melhor",
-        "o que foi dito", "anterior"
+        "isso",
+        "esse",
+        "essa",
+        "anterior",
+        "antes",
+        "primeira conversa",
+        "primeiro assunto",
+        "o que disseste",
+        "o que falamos",
+        "lembras",
+        "falámos",
+        "falamos",
+        "conversa anterior",
+        "histórico"
     ]
 
     q = question.lower()

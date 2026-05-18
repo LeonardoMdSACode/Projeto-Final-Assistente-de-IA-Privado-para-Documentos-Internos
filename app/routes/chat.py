@@ -8,6 +8,7 @@ from app.services.llm_service import ask_llm
 from app.services.memory_service import add_message, get_history, clear_history
 from app.services.vector_store import collection
 from app.services.query_rewrite_service import rewrite_query
+from app.services.router_service import decide
 
 router = APIRouter()
 
@@ -92,9 +93,6 @@ def chat(request: ChatRequest):
 
     history = get_history()
 
-    results = []
-    answer = ""
-
     # ---------------- GREETING ----------------
     if is_greeting(question):
         answer = "Olá. Como posso ajudar?"
@@ -127,34 +125,63 @@ def chat(request: ChatRequest):
             "chunks": []
         }
 
-    # ---------------- RAG ----------------
-    else:
+    # ---------------- ROUTER ----------------
+    route = decide(question, history)
 
-        rewritten_query = rewrite_query(question, history=history)
+    # ================= MEMORY =================
 
-        results = search(rewritten_query, history=history)
-
-        if not results:
-            answer = "Não encontrei essa informação nos documentos."
-
-            add_message("assistant", answer)
-
-            return {
-                "answer": answer,
-                "sources": [],
-                "chunks": []
-            }
-
-        # 🔥 TUDO LOCALIZADO AQUI (NUNCA SAI DO BLOCO)
-
-        context = "\n\n".join(r["text"] for r in results)
-
+    if route == "MEMORY_HINT":
         formatted_history = "\n".join(
             f"{m['role']}: {m['content']}"
-            for m in history[-6:]
+            for m in history[-10:]
         )
 
         prompt = f"""
+    Responde usando apenas o histórico da conversa.
+
+    NÃO uses conhecimento externo.
+    NÃO inventes.
+    Se não existir informação suficiente, diz isso claramente.
+
+    HISTÓRICO:
+    {formatted_history}
+
+    PERGUNTA:
+    {question}
+    """
+
+        answer = ask_llm(prompt)
+
+        add_message("assistant", answer)
+        return {
+            "answer": answer,
+            "sources": [],
+            "chunks": []
+        }
+
+    # ================= RAG =================
+
+    rewritten_query = rewrite_query(question, history=history)
+    results = search(rewritten_query, history=history)
+
+    if not results:
+
+        answer = "Não encontrei essa informação nos documentos."
+
+        add_message("assistant", answer)
+
+        return {
+            "answer": answer,
+            "sources": [],
+            "chunks": []
+        }
+
+    context = "\n\n".join(r["text"] for r in results)
+    formatted_history = "\n".join(
+        f"{m['role']}: {m['content']}"
+        for m in history[-6:]
+    )
+    prompt = f"""
 Tu és um assistente que responde usando documentos recuperados por RAG.
 
 IMPORTANTE:
@@ -176,25 +203,25 @@ PERGUNTA:
 {question}
 """
 
-        answer = ask_llm(prompt)
-        unique_sources = list(dict.fromkeys(
-            r["source"] for r in results
-        ))[:2]
-        unique_excerpts = []
-        seen = set()
-        for r in results:
-            key = (r["source"], r["chunk_id"])
-            if key in seen:
-                continue
-            
-            seen.add(key)
-            unique_excerpts.append({
-                "source": r["source"],
-                "chunk_id": r["chunk_id"],
-                "text": r["text"][:400]
-            })
-            if len(unique_excerpts) >= 2:
-                break
+    answer = ask_llm(prompt)
+    unique_sources = list(dict.fromkeys(
+        r["source"] for r in results
+    ))[:2]
+    unique_excerpts = []
+    seen = set()
+    for r in results:
+        key = (r["source"], r["chunk_id"])
+        if key in seen:
+            continue
+        
+        seen.add(key)
+        unique_excerpts.append({
+            "source": r["source"],
+            "chunk_id": r["chunk_id"],
+            "text": r["text"][:400]
+        })
+        if len(unique_excerpts) >= 2:
+            break
 
     # FINAL OUTPUT (ÚNICO LOCAL DE FORMATAÇÃO)
 

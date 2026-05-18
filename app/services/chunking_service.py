@@ -8,17 +8,22 @@ nltk.data.path.append("./nltk_data")
 from nltk.tokenize import sent_tokenize
 
 
-MIN_WORDS = 80
+MIN_WORDS = 60
 
 
 def clean_text(text: str):
 
     text = text.replace("\x00", " ")
 
+    # FIX PDF OCR / hyphenation
+    text = re.sub(r"(\w+)-\n(\w+)", r"\1\2", text)
+
+    # junta linhas partidas
+    text = re.sub(r"(?<!\n)\n(?!\n)", " ", text)
+
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]+", " ", text)
 
-    # remove páginas tipo índice
     text = re.sub(r"\.{4,}\s*\d+", "", text)
 
     return text.strip()
@@ -81,6 +86,12 @@ def is_noise_chunk(text: str) -> bool:
 
     # chunk demasiado fragmentado
     if t.count("\n") > 15 and len(t.split()) < 120:
+        return True
+
+    # chunks demasiado dominados por dots/índice
+    dot_ratio = t.count(".") / max(len(t), 1)
+
+    if dot_ratio > 0.08:
         return True
 
     return False

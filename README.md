@@ -66,3 +66,4 @@ memory
 follow-up questions
 reranking
 query rewriting
+Router entre histórico vs RAG
